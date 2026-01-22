@@ -1,14 +1,57 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>充电站导航</title>
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=您的高德地图API密钥"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>附近充电站</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入高德地图API -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=7d32d8ab3989a9010e6ab2e773de197f"></script>
+</head>
+<body>
+    <!-- 头部 -->
+    <header class="header">
+        <h1>附近充电站</h1>
+    </header>
+    
+    <!-- 主容器 -->
+    <div class="container">
+        <!-- 地图容器 -->
+        <div id="map-container" class="map"></div>
+        
+        <!-- 搜索栏 -->
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="搜索地址...">
+            <button id="search-btn">搜索</button>
+        </div>
+        
+        <!-- 充电站列表 -->
+        <div class="station-list-container">
+            <div class="station-list-header">
+                <h2>附近充电站</h2>
+                <span id="station-count">0个结果</span>
+            </div>
+            <div id="station-list" class="station-list">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 详情面板 -->
+        <div id="station-detail" class="station-detail hidden">
+            <div class="detail-header">
+                <h3 id="detail-name"></h3>
+                <button id="close-detail" class="close-btn">×</button>
+            </div>
+            <div id="detail-content"></div>
+        </div>
+    </div>
+    
+    <!-- 加载中遮罩 -->
+    <div id="loading-mask" class="loading-mask hidden">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">加载中...</div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
 </html>
