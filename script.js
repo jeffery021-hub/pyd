@@ -99,26 +99,36 @@ function searchNearbyStations(location) {
     // 清空之前的标记
     clearStationMarkers();
     
-    // 使用高德地图POI搜索
-    const poiSearch = new AMap.PlaceSearch({
-        type: '汽车服务|充电站',
-        radius: 5000, // 搜索半径5公里
-        pageSize: 20,
-        pageIndex: 1,
-        map: null // 不自动在地图上添加标记，我们自己控制
-    });
-    
-    poiSearch.searchNearBy('充电站', location, 5000, (status, result) => {
-        hideLoading();
+    // 使用AMap.plugin确保PlaceSearch插件正确加载
+    AMap.plugin('AMap.PlaceSearch', () => {
+        console.log('开始搜索附近充电站，位置:', location);
         
-        if (status === 'complete' && result.poiList) {
-            currentStations = result.poiList.pois;
-            updateStationList();
-            addStationMarkers(currentStations);
-        } else {
-            console.error('搜索失败:', result);
-            showError('搜索附近充电站失败，请稍后重试');
-        }
+        // 使用高德地图POI搜索
+        const poiSearch = new AMap.PlaceSearch({
+            type: '汽车服务;充电站', // 修复：使用分号分隔类型
+            radius: 5000, // 搜索半径5公里
+            pageSize: 20,
+            pageIndex: 1,
+            map: null // 不自动在地图上添加标记，我们自己控制
+        });
+        
+        poiSearch.searchNearBy('充电站', location, 5000, (status, result) => {
+            hideLoading();
+            
+            console.log('搜索结果:', status, result);
+            
+            if (status === 'complete' && result.poiList) {
+                // 按距离从近到远排序
+                currentStations = result.poiList.pois.sort((a, b) => a.distance - b.distance);
+                console.log('排序后的充电站:', currentStations);
+                
+                updateStationList();
+                addStationMarkers(currentStations);
+            } else {
+                console.error('搜索失败:', result);
+                showError('搜索附近充电站失败，错误信息：' + (result.info || '未知错误'));
+            }
+        });
     });
 }
 
