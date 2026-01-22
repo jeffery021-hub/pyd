@@ -5,13 +5,41 @@ let stationMarkers = [];
 let currentStations = [];
 let selectedStation = null;
 
+// 工具函数 - 显示加载遮罩
+function showLoading() {
+    document.getElementById('loading-mask').classList.remove('hidden');
+}
+
+// 工具函数 - 隐藏加载遮罩
+function hideLoading() {
+    document.getElementById('loading-mask').classList.add('hidden');
+}
+
+// 工具函数 - 显示错误信息
+function showError(message) {
+    const stationList = document.getElementById('station-list');
+    stationList.innerHTML = `<div class="error">${message}</div>`;
+}
+
 // 初始化地图
 function initMap() {
+    console.log('开始初始化地图');
+    
+    // 检查高德地图API是否加载成功
+    if (typeof AMap === 'undefined') {
+        console.error('高德地图API加载失败');
+        showError('高德地图API加载失败，请检查网络或API Key');
+        hideLoading();
+        return;
+    }
+    
     // 创建地图实例
     map = new AMap.Map('map-container', {
         zoom: 15,
         resizeEnable: true
     });
+    
+    console.log('地图实例创建成功:', map);
     
     // 添加比例尺控件
     map.addControl(new AMap.Scale());
@@ -19,8 +47,12 @@ function initMap() {
     // 添加缩放控件
     map.addControl(new AMap.ToolBar());
     
-    // 获取用户位置
-    getCurrentLocation();
+    // 地图加载完成事件
+    map.on('complete', () => {
+        console.log('地图加载完成');
+        // 获取用户位置
+        getCurrentLocation();
+    });
     
     // 绑定搜索事件
     bindSearchEvent();
@@ -33,10 +65,15 @@ function initMap() {
 function getCurrentLocation() {
     showLoading();
     
+    console.log('开始获取用户位置');
+    
     // 使用HTML5 Geolocation API获取位置
     if (navigator.geolocation) {
+        console.log('浏览器支持Geolocation API');
+        
         navigator.geolocation.getCurrentPosition(
             (position) => {
+                console.log('获取位置成功:', position);
                 const { latitude, longitude } = position.coords;
                 const userLocation = [longitude, latitude];
                 
@@ -52,6 +89,25 @@ function getCurrentLocation() {
             (error) => {
                 hideLoading();
                 console.error('获取位置失败:', error);
+                
+                let errorMsg = '';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMsg = '用户拒绝了位置请求';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMsg = '位置信息不可用';
+                        break;
+                    case error.TIMEOUT:
+                        errorMsg = '获取位置超时';
+                        break;
+                    default:
+                        errorMsg = '获取位置时发生未知错误';
+                        break;
+                }
+                
+                console.error('位置获取错误信息:', errorMsg);
+                
                 // 默认使用北京位置
                 const defaultLocation = [116.397428, 39.90923];
                 map.setCenter(defaultLocation);
@@ -66,7 +122,8 @@ function getCurrentLocation() {
         );
     } else {
         hideLoading();
-        // 浏览器不支持Geolocation
+        console.error('浏览器不支持Geolocation API');
+        // 默认使用北京位置
         const defaultLocation = [116.397428, 39.90923];
         map.setCenter(defaultLocation);
         addUserMarker(defaultLocation);
@@ -105,19 +162,18 @@ function searchNearbyStations(location) {
         
         // 使用高德地图POI搜索
         const poiSearch = new AMap.PlaceSearch({
-            type: '汽车服务;充电站', // 修复：使用分号分隔类型
+            type: '充电站', // 简化：直接使用充电站类型
             radius: 5000, // 搜索半径5公里
             pageSize: 20,
             pageIndex: 1,
             map: null // 不自动在地图上添加标记，我们自己控制
         });
         
+        // 第一次搜索：使用searchNearBy
         poiSearch.searchNearBy('充电站', location, 5000, (status, result) => {
-            hideLoading();
+            console.log('searchNearBy搜索结果:', status, result);
             
-            console.log('搜索结果:', status, result);
-            
-            if (status === 'complete' && result.poiList) {
+            if (status === 'complete' && result.poiList && result.poiList.pois.length > 0) {
                 // 按距离从近到远排序
                 currentStations = result.poiList.pois.sort((a, b) => a.distance - b.distance);
                 console.log('排序后的充电站:', currentStations);
@@ -125,9 +181,29 @@ function searchNearbyStations(location) {
                 updateStationList();
                 addStationMarkers(currentStations);
             } else {
-                console.error('搜索失败:', result);
-                showError('搜索附近充电站失败，错误信息：' + (result.info || '未知错误'));
+                console.log('searchNearBy搜索失败或无结果，尝试使用search方法');
+                
+                // 第二次搜索：使用search方法作为备用
+                poiSearch.search('充电站', {
+                    location: location,
+                    radius: 5000
+                }, (status2, result2) => {
+                    console.log('search方法搜索结果:', status2, result2);
+                    
+                    if (status2 === 'complete' && result2.poiList && result2.poiList.pois.length > 0) {
+                        // 按距离从近到远排序
+                        currentStations = result2.poiList.pois.sort((a, b) => a.distance - b.distance);
+                        updateStationList();
+                        addStationMarkers(currentStations);
+                    } else {
+                        console.error('两次搜索都失败:', result2);
+                        showError('搜索附近充电站失败，尝试手动搜索或检查网络连接');
+                    }
+                });
             }
+            
+            // 确保在所有情况下都隐藏加载动画
+            hideLoading();
         });
     });
 }
@@ -334,22 +410,6 @@ function bindSearchEvent() {
 function bindDetailEvents() {
     const closeBtn = document.getElementById('close-detail');
     closeBtn.addEventListener('click', hideStationDetail);
-}
-
-// 显示加载遮罩
-function showLoading() {
-    document.getElementById('loading-mask').classList.remove('hidden');
-}
-
-// 隐藏加载遮罩
-function hideLoading() {
-    document.getElementById('loading-mask').classList.add('hidden');
-}
-
-// 显示错误信息
-function showError(message) {
-    const stationList = document.getElementById('station-list');
-    stationList.innerHTML = `<div class="error">${message}</div>`;
 }
 
 // 页面加载完成后初始化
