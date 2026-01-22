@@ -18,6 +18,22 @@ body {
   height: 100vh;
 }
 
+/* 加载动画 */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1890ff;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  margin-right: 10px;
+}
+
 .app-container {
   width: 100%;
   height: 100%;
@@ -206,6 +222,15 @@ body {
   justify-content: center;
   padding: 20px;
   color: #666;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
 }
 
 .error {
@@ -230,4 +255,33 @@ body {
   font-weight: 600;
   color: #333;
   text-align: center;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .control-panel {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 12px;
+  }
+  
+  .add-station-btn {
+    bottom: 10px;
+    right: 10px;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+  
+  .loading {
+    padding: 16px;
+    font-size: 14px;
+  }
+  
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
 }
